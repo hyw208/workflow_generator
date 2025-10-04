@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='utf-8'?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+  xmlns:camunda="http://camunda.org/schema/1.0/bpmn" 
+  id="Definitions_1" 
+  targetNamespace="http://bpmn.io/schema/bpmn" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+  xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" 
+  xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI">
+
+  <error id="REJECTION_ERROR" name="Approval Rejected" errorCode="REJECTION_ERROR" />
+
+  <process id="rsa_subprocess" isExecutable="true" camunda:historyTimeToLive="180">
+    <startEvent id="StartEvent_1" />
+    <serviceTask id="Task_1" name="REST Service Task">
+        <extensionElements>
+        <camunda:connector>
+            <camunda:connectorId>http-connector</camunda:connectorId>
+            <camunda:inputOutput>
+            <camunda:inputParameter name="url">http://host.docker.internal:8081</camunda:inputParameter>
+            <camunda:inputParameter name="method">POST</camunda:inputParameter>
+            <camunda:inputParameter name="payload">{"name": "rsa"}</camunda:inputParameter>
+            </camunda:inputOutput>
+            </camunda:connector>
+        </extensionElements>
+    </serviceTask>
+    <userTask id="Task_2" name="Human Task - perform rsa">
+      <extensionElements>
+      <camunda:meta key="x">1</camunda:meta>
+      <camunda:meta key="y">2</camunda:meta>
+      </extensionElements>
+    </userTask>
+    <callActivity id="call_approval_subprocess" name="Call Reusable Subprocess" calledElement="approval_subprocess">
+      <extensionElements>
+      <!--
+         This maps variables from the subprocess back to the parent process.
+         'source' is the variable name in the subprocess.
+         'target' is the variable name you want it to have in the parent process.
+        
+        * The approved variable from the subprocess is mapped to a variable called approved in the parent.
+        * The rejection_reason variable from the subprocess is mapped to a new variable called rejection_reason in the parent.
+      -->
+        <camunda:out source="approved" target="approved" />
+        <camunda:out source="rejection_reason" target="rejection_reason" />
+      </extensionElements>
+    </callActivity>
+
+    <boundaryEvent id="catch_rejection" attachedToRef="call_approval_subprocess">
+      <errorEventDefinition errorRef="REJECTION_ERROR" />
+    </boundaryEvent>
+
+    <endEvent id="EndEvent_1" />
+    <sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_1" />
+    <sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="Task_2" />
+    <sequenceFlow id="Flow_3" sourceRef="Task_2" targetRef="call_approval_subprocess" />
+    <sequenceFlow id="Flow_reconsider" sourceRef="catch_rejection" targetRef="Task_2" />
+    <sequenceFlow id="Flow_4" sourceRef="call_approval_subprocess" targetRef="EndEvent_1" />
+  </process>
+</definitions>

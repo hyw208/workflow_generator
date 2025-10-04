@@ -1,0 +1,186 @@
+
+docker run -d -p 8080:8080 --name camunda-custom camunda-custom:7.20.0
+
+docker rm -f camunda-custom
+
+curl -u demo:demo -F "deployment-name=workflow-deployment" -F "deploy-changed-only=true" -F "workflow.bpmn=@workflow.bpmn" http://localhost:8080/engine-rest/deployment/create
+
+=============================================
+Task Listener Events
+=============================================
+we can use different events for different phases:
+
+    create: When task is created (best for initial assignment)
+
+    assignment: When task is assigned to a user
+
+    complete: When task is completed
+
+    delete: When task is deleted
+
+    update: When task properties are updated
+
+eg. 
+<userTask id="managerApproval" name="Manager Approval">
+  <extensionElements>
+    <camunda:taskListener event="create" class="com.example.ManagerAssignmentListener" />
+    <camunda:taskListener event="assignment" class="com.example.TaskAssignmentLogger" />
+  </extensionElements>
+</userTask>
+
+@Component
+public class ManagerAssignmentListener implements TaskListener {
+    
+    @Autowired
+    private UserService userService;
+    
+    @Override
+    public void notify(DelegateTask delegateTask) {
+        String processInstanceId = delegateTask.getProcessInstanceId();
+        String department = (String) delegateTask.getVariable("department");
+        String requestType = (String) delegateTask.getVariable("requestType");
+        Double amount = (Double) delegateTask.getVariable("amount");
+        
+        // Complex assignment logic
+        String assignee = determineAssignee(department, requestType, amount);
+        delegateTask.setAssignee(assignee);
+        
+        // Set task priority based on amount
+        if (amount > 10000) {
+            delegateTask.setPriority(100);
+            delegateTask.setDueDate(getUrgentDueDate());
+        } else {
+            delegateTask.setPriority(50);
+            delegateTask.setDueDate(getStandardDueDate());
+        }
+        
+        // Set candidate users for escalation
+        delegateTask.addCandidateUser("backup.manager");
+        delegateTask.addCandidateGroup("senior-managers");
+    }
+    
+    private String determineAssignee(String department, String requestType, Double amount) {
+        if ("IT".equals(department)) {
+            if ("hardware".equals(requestType) && amount > 5000) {
+                return "it.director";
+            }
+            return "it.manager";
+        } else if ("FINANCE".equals(department)) {
+            if (amount > 10000) {
+                return "finance.director";
+            }
+            return "finance.manager";
+        }
+        return "general.manager";
+    }
+    
+    private Date getUrgentDueDate() {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, 1); // Due in 1 day
+        return cal.getTime();
+    }
+    
+    private Date getStandardDueDate() {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, 3); // Due in 3 days
+        return cal.getTime();
+    }
+}
+=============================================
+event when calling sub process 
+=============================================
+    <callActivity id="callSubProcess" name="Call Sub-Process" 
+                calledElement="approvalSubProcess">
+        <extensionElements>
+            <camunda:executionListener event="start" class="com.example.SubProcessStartListener" />
+            <camunda:executionListener event="end" class="com.example.SubProcessEndListener" />
+            <camunda:executionListener event="take" class="com.example.SubProcessTakeListener" />
+        </extensionElements>
+    </callActivity>
+
+    @Component
+    public class SubProcessStartListener implements ExecutionListener {
+        
+        @Override
+        public void notify(DelegateExecution execution) throws Exception {
+            System.out.println("Call Activity STARTED: " + execution.getCurrentActivityName());
+            System.out.println("Process Instance ID: " + execution.getProcessInstanceId());
+            
+            // You can modify variables before sub-process starts
+            execution.setVariable("parentProcessId", execution.getProcessInstanceId());
+        }
+    }
+
+    @Component
+    public class SubProcessEndListener implements ExecutionListener {
+        
+        @Override
+        public void notify(DelegateExecution execution) throws Exception {
+            System.out.println("Call Activity COMPLETED: " + execution.getCurrentActivityName());
+            
+            // Access variables returned from sub-process
+            String subProcessResult = (String) execution.getVariable("approvalResult");
+            System.out.println("Sub-process result: " + subProcessResult);
+        }
+    }
+
+=============================================
+Get human task metadata (not available in task query api), eg. buttons on the UI to drive next step
+=============================================
+1. get process definition id from process instance id 
+    curl http://localhost:8080/engine-rest/process-instance/38ab5183-a01e-11f0-988a-0242ac110002 (Get details for a specific proce…  │
+
+ │  {"links":[],"id":"38ab5183-a01e-11f0-988a-0242ac110002","definitionId":"Process_1:1:1f6410e2-a01e-11f0-988a-0242ac110002","            │
+ │    businessKey":"ssss","caseInstanceId":null,"ended":false,"suspended":false,"tenantId":null}           
+
+
+2. curl http://localhost:8080/engine-rest/process-definition/{definitionId}/xml
+finally, 
+    code is in get_metadata.py
+
+ Successfully retrieved user task extension metadata: eg. buttons/decisions on the UI to drive the next step of workflow                                                              │
+ {'x': '1', 'y': '2'} 
+
+or 
+ {
+    "RSA": "{some expression}",
+    "Acknowledge": "{some other expression}",
+    ...  
+ }
+
+3. to get human tasks back
+there are many ways to get human task via query, eg. 
+a. get unfished task
+curl "http://localhost:8080/engine-rest/task?taskNameLike=%Human%&processInstanceId=38ab5183-a01e-11f0-988a-0242ac110002"
+
+b. get finished task
+curl "http://localhost:8080/engine-rest/history/task?taskNameLike=%Human%&processInstanceId=38ab5183-a01e-11f0-988a-024
+     2ac110002"
+
+=============================================
+Render UI
+=============================================
+1. alert baner
+2. alert details + explains
+3. buttons at bottom
+    - from metadata of the user task
+    - eg. buttons/decisions on the UI to drive the next step of workflow
+    - each button has a name and an expression (eg. set process variable, or call api, etc)
+4. when button clicked, call complete task api with variables
+    POST /engine-rest/task/{id}/complete
+    {
+      "variables": {
+        "buttonClicked": {"value": "RSA", "type": "String"}
+      }
+    }
+5. this will drive the workflow to next step, which could be another user task, or service task, etc.
+6. if another user task, repeat from step 1
+
+
+=========================
+REUSABLE SUB-PROCESS
+=============================================
+
+curl -u demo:demo -F "deployment-name=approval-deployment" -F "deploy-changed-only=true" -F "approval.bpmn=@approval.bpmn" http://localhost:8080/engine-rest/deployment/create
+curl -u demo:demo -F "deployment-name=rsa-deployment" -F "deploy-changed-only=true" -F "rsa.bpmn=@rsa.bpmn" http://localhost:8080/engine-rest/deployment/create
+curl -u demo:demo -F "deployment-name=main-deployment" -F "deploy-changed-only=true" -F "main.bpmn=@main.bpmn" http://localhost:8080/engine-rest/deployment/create
