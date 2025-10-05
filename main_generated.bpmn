@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" targetNamespace="http://bpmn.io/schema/bpmn" id="main_definitions" xmlns_xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns_bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns_omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns_omgdi="http://www.omg.org/spec/DD/20100524/DI">
+  <process id="main_process" isExecutable="true" camunda:historyTimeToLive="180">
+    <startEvent id="StartEvent_1" />
+    <serviceTask id="Task_1" name="REST Service Task">
+      <extensionElements>
+        <camunda:connector>
+          <camunda:connectorId>http-connector</camunda:connectorId>
+          <camunda:inputOutput>
+            <camunda:inputParameter name="url">http://host.docker.internal:8081</camunda:inputParameter>
+            <camunda:inputParameter name="method">POST</camunda:inputParameter>
+            <camunda:inputParameter name="payload">{"name": "main"}</camunda:inputParameter>
+            </camunda:inputOutput>
+          </camunda:connector>
+        </extensionElements>
+      </serviceTask>
+    <userTask id="Task_2" name="Human Task - review indicator" camunda:formKey="x/y/z/main.html">
+      <extensionElements>
+        <camunda:meta key="x">1</camunda:meta>
+        <camunda:meta key="y">2</camunda:meta>
+        </extensionElements>
+      </userTask>
+    <callActivity id="call_rsa_workflow" name="Call rsa workflow" calledElement="rsa_process">
+      <extensionElements>
+        <camunda:in source="xxx" target="xxx" />
+        <camunda:out source="yyy" target="yyy" />
+        </extensionElements>
+      </callActivity>
+    <endEvent id="EndEvent_1" />
+    <sequenceFlow id="Flow_StartEvent_1_to_Task_1" sourceRef="StartEvent_1" targetRef="Task_1" />
+    <sequenceFlow id="Flow_Task_1_to_Task_2" sourceRef="Task_1" targetRef="Task_2" />
+    <sequenceFlow id="Flow_Task_2_to_call_rsa_workflow" sourceRef="Task_2" targetRef="call_rsa_workflow" />
+    <sequenceFlow id="Flow_call_rsa_workflow_to_EndEvent_1" sourceRef="call_rsa_workflow" targetRef="EndEvent_1" />
+    </process>
+  </definitions>
