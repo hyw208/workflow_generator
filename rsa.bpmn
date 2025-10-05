@@ -19,7 +19,7 @@
             <camunda:inputOutput>
             <camunda:inputParameter name="url">http://host.docker.internal:8081</camunda:inputParameter>
             <camunda:inputParameter name="method">POST</camunda:inputParameter>
-            <camunda:inputParameter name="payload">{"name": "rsa"}</camunda:inputParameter>
+            <camunda:inputParameter name="payload">{"name": "rsa", "a": "b"}</camunda:inputParameter>
             </camunda:inputOutput>
             </camunda:connector>
         </extensionElements>
@@ -42,6 +42,7 @@
       -->
         <camunda:out source="approved" target="approved" />
         <camunda:out source="rejection_reason" target="rejection_reason" />
+        <camunda:in source="rsa" target="rsa" />
       </extensionElements>
     </callActivity>
 

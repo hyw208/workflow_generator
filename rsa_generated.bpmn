@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" targetNamespace="http://bpmn.io/schema/bpmn" id="rsa_definitions" xmlns_xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns_bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns_omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns_omgdi="http://www.omg.org/spec/DD/20100524/DI">
+  <error id="REJECTION_ERROR" name="Approval Rejected" errorCode="REJECTION_ERROR" />
+  <process id="rsa_process" isExecutable="true" camunda:historyTimeToLive="180">
+    <startEvent id="StartEvent_1" />
+    <serviceTask id="Task_1" name="test post api call">
+      <extensionElements>
+        <camunda:connector>
+          <camunda:connectorId>http-connector</camunda:connectorId>
+          <camunda:inputOutput>
+            <camunda:inputParameter name="url">http://host.docker.internal:8081</camunda:inputParameter>
+            <camunda:inputParameter name="method">POST</camunda:inputParameter>
+            <camunda:inputParameter name="payload">{"name": "rsa"}</camunda:inputParameter>
+            </camunda:inputOutput>
+          </camunda:connector>
+        </extensionElements>
+      </serviceTask>
+    <userTask id="Task_2" name="Human Task - perform rsa" camunda:formKey="x/y/z/rsa.html" />
+    <callActivity id="call_approval_workflow" name="Call approval workflow" calledElement="approval_process">
+      <extensionElements>
+        <camunda:in source="rsa" target="rsa" />
+        <camunda:out source="approval" target="approval" />
+        <camunda:out source="rejection_reason" target="rejection_reason" />
+        </extensionElements>
+      </callActivity>
+    <boundaryEvent id="catch_rejection" name="Error Boundary" attachedToRef="call_approval_workflow">
+      <errorEventDefinition errorRef="REJECTION_ERROR" />
+      </boundaryEvent>
+    <endEvent id="EndEvent_1" />
+    <sequenceFlow id="Flow_StartEvent_1_to_Task_1" sourceRef="StartEvent_1" targetRef="Task_1" />
+    <sequenceFlow id="Flow_Task_1_to_Task_2" sourceRef="Task_1" targetRef="Task_2" />
+    <sequenceFlow id="Flow_Task_2_to_call_approval_workflow" sourceRef="Task_2" targetRef="call_approval_workflow" />
+    <sequenceFlow id="Flow_call_approval_workflow_to_EndEvent_1" sourceRef="call_approval_workflow" targetRef="EndEvent_1" />
+    <sequenceFlow id="Flow_catch_rejection_to_Task_2" sourceRef="catch_rejection" targetRef="Task_2" />
+    </process>
+  </definitions>

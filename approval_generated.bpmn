@@ -15,7 +15,7 @@
           </camunda:connector>
         </extensionElements>
       </serviceTask>
-    <userTask id="Task_2" name="Human Task - approval or reject" camunda:formKey="x/y/z/abc.html">
+    <userTask id="Task_2" name="Human Task - approval or reject" camunda:formKey="x/y/z/approval.html">
       <extensionElements>
         <camunda:meta key="x">1</camunda:meta>
         <camunda:meta key="y">2</camunda:meta>

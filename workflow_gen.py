@@ -205,6 +205,53 @@ class SequenceFlow:
             )
             condition.text = condition_expression
 
+class CallActivity:
+    """
+        <callActivity id="call_approval_subprocess" name="Call Reusable Subprocess" calledElement="approval_process">
+            <extensionElements>
+                <camunda:out source="approved" target="approved" />
+                <camunda:out source="rejection_reason" target="rejection_reason" />
+                <camunda:in source="rsa" target="rsa" />
+            </extensionElements>
+        </callActivity>    
+    """
+    def __init__(self, process, id, name, config=None, meta=None, seq=None, next=None):
+        config = parse_config_meta_next(config)
+        self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}callActivity", id=id, name=name, **(config if config else {}))
+        meta = parse_config_meta_next(meta)
+        if meta:
+            ext = ET.SubElement(self.element, f"{{{BPMN_NS}}}extensionElements")
+            for key, value in meta.items():
+                # Distinguish between 'in' and 'out' mappings
+                if key.startswith('in.'): # eg. in.rsa
+                    key = key.split('in.')[-1]
+                    ET.SubElement(ext, f"{{{CAMUNDA_NS}}}in", source=key, target=value)
+                elif key.startswith('out'):
+                    key = key.split('out.')[-1]
+                    ET.SubElement(ext, f"{{{CAMUNDA_NS}}}out", source=key, target=value)
+                else:
+                    raise ValueError(f"Meta key must start with 'in.' or 'out.': {key}")
+                
+        self.seq = seq
+        self.next = parse_config_meta_next(next, d2=':')
+        process._add_element(self.element, id, 100, 80)
+
+class BoundaryEvent:
+    """
+        <boundaryEvent id="catch_rejection" attachedToRef="call_approval_subprocess">
+            <errorEventDefinition errorRef="REJECTION_ERROR" />
+        </boundaryEvent>
+    """
+    def __init__(self, process, id, name, errorRef=None, config=None, meta=None, seq=None, next=None):
+        config = parse_config_meta_next(config)
+        self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}boundaryEvent", id=id, name=name, **(config if config else {}))
+        if errorRef:    
+            ET.SubElement(self.element, f"{{{BPMN_NS}}}errorEventDefinition", errorRef=errorRef)
+                
+        self.seq = seq
+        self.next = parse_config_meta_next(next, d2=':')
+        process._add_element(self.element, id, 100, 80)
+
 def parse_workflows_excel(file_path):
     """
     Parses a multi-sheet Excel file and returns a dictionary of DataFrames.
@@ -246,6 +293,10 @@ def parse_config_meta_next(text, d2='='):
             or 
 
             2
+
+        ***********
+        BUG: there is a bug if payload contains a comma, eg. payload={"name": "approval", "x": "y"}, need a better separator in excel
+        ***********
     """
     obj = None
     if text:
@@ -309,6 +360,10 @@ def handle(wf, tElm, df):
                 flows[seq] = ConnectorServiceTask(proc, id=id, name=name, config=config, seq=seq, next=next)
             elif bpmnElm.upper() == "EXCLUSIVEGATEWAY": 
                 flows[seq] = ExclusiveGateway(proc, id=id, name=name, seq=seq, next=next)
+            elif bpmnElm.upper() == "CALLACTIVITY":
+                flows[seq] = CallActivity(proc, id=id, name=name, config=config, meta=meta, seq=seq, next=next)
+            elif bpmnElm.upper() == "BOUNDARYEVENT":
+                flows[seq] = BoundaryEvent(proc, id=id, name=name, errorRef=errorRef, config=config, meta=meta, seq=seq, next=next)
             else:
                 print(f"Warning: Unknown BPMN Element '{bpmnElm}' for Id '{id}'. Skipping element creation.")
         
@@ -346,14 +401,15 @@ if __name__ == "__main__":
             print(f"\nDataFrame from Sheet '{name}':")
             print(df.head())
 
-            # Generate workflow for approval tab
-            if name == "approval":
-                wf = Workflow(id=f"{name}_definitions", name=name)
-            
-                topElms = df['TopElm'].unique()
-                for tElm in topElms: # iterate each unique top elm
-                    print(f"\nProcessing TopElm: {tElm}")
-                    sub_df = df[df['TopElm'] == tElm]
-                    handle(wf, tElm, sub_df)
+            # Generate workflow for each sheet
+            print(f"\nGenerating workflow for sheet: {name}")
 
-                wf.to_xml(f"{name}_generated.bpmn") 
+            wf = Workflow(id=f"{name}_definitions", name=name)
+        
+            topElms = df['TopElm'].unique()
+            for tElm in topElms: # iterate each unique top elm
+                print(f"\nProcessing TopElm: {tElm}")
+                sub_df = df[df['TopElm'] == tElm]
+                handle(wf, tElm, sub_df)
+
+            wf.to_xml(f"{name}_generated.bpmn") 
