@@ -1,9 +1,17 @@
 
-docker run -d -p 8080:8080 --name camunda-custom camunda-custom:7.20.0
-
+# delete docker by name
 docker rm -f camunda-custom
 
-curl -u demo:demo -F "deployment-name=workflow-deployment" -F "deploy-changed-only=true" -F "workflow.bpmn=@workflow.bpmn" http://localhost:8080/engine-rest/deployment/create
+# run docker
+docker run -d -p 8080:8080 --name camunda-custom camunda-custom:7.20.0
+
+# deploy workflow
+curl -u demo:demo -F "deployment-name=approval-deployment" -F "deploy-changed-only=true" -F "approval.bpmn=@approval_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
+
+curl -u demo:demo -F "deployment-name=rsa-deployment" -F "deploy-changed-only=true" -F "rsa.bpmn=@rsa_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
+
+curl -u demo:demo -F "deployment-name=main-deployment" -F "deploy-changed-only=true" -F "main.bpmn=@main_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
+
 
 =============================================
 Task Listener Events

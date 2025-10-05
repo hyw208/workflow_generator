@@ -6,24 +6,30 @@ import pandas as pd
 # --- XML Namespace Configuration ---
 BPMN_NS = "http://www.omg.org/spec/BPMN/20100524/MODEL"
 CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn"
+BPMNDI_NS = "http://www.omg.org/spec/BPMN/20100524/DI"
+OMGDC_NS = "http://www.omg.org/spec/DD/20100524/DC"
+OMGDI_NS = "http://www.omg.org/spec/DD/20100524/DI"
+XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 
 ET.register_namespace('', BPMN_NS)
 ET.register_namespace('camunda', CAMUNDA_NS)
-# BPMNDI_NS = "http://www.omg.org/spec/BPMN/20100524/DI"
-# OMGDC_NS = "http://www.omg.org/spec/DD/20100524/DC"
-# OMGDI_NS = "http://www.omg.org/spec/DD/20100524/DI"
-# ET.register_namespace('bpmndi', BPMNDI_NS)
-# ET.register_namespace('omgdc', OMGDC_NS)
-# ET.register_namespace('omgdi', OMGDI_NS)      
+ET.register_namespace('bpmndi', BPMNDI_NS)
+ET.register_namespace('omgdc', OMGDC_NS)
+ET.register_namespace('omgdi', OMGDI_NS)     
+ET.register_namespace('xsi', XSI_NS) 
 
 class Workflow:
     def __init__(self, id="Definitions_1", name=None, target_namespace="http://bpmn.io/schema/bpmn"):
         self.name = name
-        self.root = ET.Element(f"{{{BPMN_NS}}}definitions", targetNamespace=target_namespace, id=id,
-                               xmlns_xsi="http://www.w3.org/2001/XMLSchema-instance",
-                               xmlns_bpmndi="http://www.omg.org/spec/BPMN/20100524/DI",
-                               xmlns_omgdc="http://www.omg.org/spec/DD/20100524/DC",
-                               xmlns_omgdi="http://www.omg.org/spec/DD/20100524/DI")
+        self.root = ET.Element(f"{{{BPMN_NS}}}definitions", {
+            "targetNamespace": target_namespace,
+            "id": id,
+            f"xmlns:xsi": XSI_NS,
+            f"xmlns:bpmndi": BPMNDI_NS,
+            f"xmlns:omgdc": OMGDC_NS,
+            f"xmlns:omgdi": OMGDI_NS,
+            f"xmlns:camunda": CAMUNDA_NS
+        })
         self.process = None
         self.error = None
 
