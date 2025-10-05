@@ -65,12 +65,9 @@ docker run -d -p 8080:8080 --name camunda-custom camunda-custom:7.20.0
         "http://localhost:8080/engine-rest/task/5f3a50a5-a1f2-11f0-8dd0-0242ac110002/form-variables" \
         -H 'Content-Type: application/json'
 
-    
 
-
-=============================================
-Task Listener Events
-=============================================
+---
+# Task Listener Events
 we can use different events for different phases:
 
     create: When task is created (best for initial assignment)
@@ -149,9 +146,9 @@ public class ManagerAssignmentListener implements TaskListener {
         return cal.getTime();
     }
 }
-=============================================
-event when calling sub process 
-=============================================
+
+---
+# Event when calling sub process 
     <callActivity id="callSubProcess" name="Call Sub-Process" 
                 calledElement="approvalSubProcess">
         <extensionElements>
@@ -187,9 +184,8 @@ event when calling sub process
         }
     }
 
-=============================================
-Get human task metadata (not available in task query api), eg. buttons on the UI to drive next step
-=============================================
+---
+# Get human task metadata (not available in task query api), eg. buttons on the UI to drive next step
 1. get process definition id from process instance id 
     curl http://localhost:8080/engine-rest/process-instance/38ab5183-a01e-11f0-988a-0242ac110002 (Get details for a specific proce…  │
 
@@ -220,13 +216,12 @@ b. get finished task
 curl "http://localhost:8080/engine-rest/history/task?taskNameLike=%Human%&processInstanceId=38ab5183-a01e-11f0-988a-024
      2ac110002"
 
-=============================================
-Render UI
-=============================================
-1. alert baner
-2. alert details + explains
-3. buttons at bottom
-    - from metadata of the user task
+---
+# Render UI
+1. click on an alert from the alert list 
+2. UI redners the alert detail + explain
+3. buttons at the bottom of alert detail panel
+    - are defined in metadata of the user task
     - eg. buttons/decisions on the UI to drive the next step of workflow
     - each button has a name and an expression (eg. set process variable, or call api, etc)
 4. when button clicked, call complete task api with variables
@@ -240,10 +235,3 @@ Render UI
 6. if another user task, repeat from step 1
 
 
-=========================
-REUSABLE SUB-PROCESS
-=============================================
-
-curl -u demo:demo -F "deployment-name=approval-deployment" -F "deploy-changed-only=true" -F "approval.bpmn=@approval.bpmn" http://localhost:8080/engine-rest/deployment/create
-curl -u demo:demo -F "deployment-name=rsa-deployment" -F "deploy-changed-only=true" -F "rsa.bpmn=@rsa.bpmn" http://localhost:8080/engine-rest/deployment/create
-curl -u demo:demo -F "deployment-name=main-deployment" -F "deploy-changed-only=true" -F "main.bpmn=@main.bpmn" http://localhost:8080/engine-rest/deployment/create
