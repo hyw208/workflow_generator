@@ -46,6 +46,8 @@ The `workflows.xlsx` file can contain multiple sheets, with each sheet represent
 | `Meta`      | Custom metadata to be added to the BPMN element. This is useful for storing extra information, like UI hints.                          | `button1=Approve, button2=Reject`                                    |
 | `ErrorRef`  | For End Events, you can specify an error to throw.                                                                                     | `Error_1`                                                            |
 
+![Screenshot](camunda-via-excel.png)
+
 ### Generating the BPMN File
 
 To generate the BPMN file, run the `workflow_gen.py` script:
