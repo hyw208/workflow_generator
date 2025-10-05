@@ -21,8 +21,8 @@
         <camunda:in source="rsa" target="rsa" />
         <camunda:out source="approval" target="approval" />
         <camunda:out source="rejection_reason" target="rejection_reason" />
-        </extensionElements>
-      </callActivity>
+      </extensionElements>
+    </callActivity>
     <boundaryEvent id="catch_rejection" name="Error Boundary" attachedToRef="call_approval_workflow">
       <errorEventDefinition errorRef="REJECTION_ERROR" />
       </boundaryEvent>
