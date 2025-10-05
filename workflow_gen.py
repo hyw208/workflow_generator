@@ -27,8 +27,7 @@ class Workflow:
             f"xmlns:xsi": XSI_NS,
             f"xmlns:bpmndi": BPMNDI_NS,
             f"xmlns:omgdc": OMGDC_NS,
-            f"xmlns:omgdi": OMGDI_NS,
-            f"xmlns:camunda": CAMUNDA_NS
+            f"xmlns:omgdi": OMGDI_NS
         })
         self.process = None
         self.error = None
