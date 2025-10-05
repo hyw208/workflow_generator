@@ -1,16 +1,71 @@
-
-# delete docker by name
+# Delete docker by name
 docker rm -f camunda-custom
 
-# run docker
+# Run docker
 docker run -d -p 8080:8080 --name camunda-custom camunda-custom:7.20.0
 
-# deploy workflow
-curl -u demo:demo -F "deployment-name=approval-deployment" -F "deploy-changed-only=true" -F "approval.bpmn=@approval_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
+# Deploy workflow
+1. curl -u demo:demo -F "deployment-name=approval-deployment" -F "deploy-changed-only=true" -F "approval.bpmn=@approval_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
+2. curl -u demo:demo -F "deployment-name=rsa-deployment" -F "deploy-changed-only=true" -F "rsa.bpmn=@rsa_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
+3. curl -u demo:demo -F "deployment-name=main-deployment" -F "deploy-changed-only=true" -F "main.bpmn=@main_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
 
-curl -u demo:demo -F "deployment-name=rsa-deployment" -F "deploy-changed-only=true" -F "rsa.bpmn=@rsa_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
+# Start Flask API
+1. run 'python echo_flask_api.py' command in console/terminal
+2. this is for workflow's service task to call and you will see logging stmt in console/terminal when main_process is started, eg. INFO:echo_flask_api:Received payload: {'name': 'main'}
 
-curl -u demo:demo -F "deployment-name=main-deployment" -F "deploy-changed-only=true" -F "main.bpmn=@main_generated.bpmn" http://localhost:8080/engine-rest/deployment/create
+# Use the camunda UI 
+1. http://localhost:8080 (demo/demo) to start main_process which in turn calls rsa_process which in turn calls approval_process
+2. main process will wait for user task to be completed before calling rsa workflow (you can see in main_generated.bpmn)
+3. find user task id in camunda ui, eg. 746c2204-a1ed-11f0-8dd0-0242ac110002
+4. complete user task of main process by running command, 
+    curl -X POST \
+        -u demo:demo \
+        http://localhost:8080/engine-rest/task/746c2204-a1ed-11f0-8dd0-0242ac110002/complete \
+        -H 'Content-Type: application/json' \
+        -d '{"variables": {"x": {"value": true, "type": "Boolean"},"y": {"value": "Task completed via API", "type": "String"}}}'
+5. you will then see main's user task gone and rsa user task created 
+6. complete user task of rsa process by running command, 
+   curl -X POST \
+        -u demo:demo \
+        http://localhost:8080/engine-rest/task/01f8fb6f-a1f1-11f0-8dd0-0242ac110002/complete \
+        -H 'Content-Type: application/json' \
+        -d '{"variables": {"x": {"value": true, "type": "Boolean"},"y": {"value": "Task completed via API", "type": "String"}}}'
+7. you will then see rsa's user task gone and approval user task created 
+8. complete user task of approval process by running command,
+   curl -X POST \
+        -u demo:demo \
+        http://localhost:8080/engine-rest/task/8ee5a47c-a1f1-11f0-8dd0-0242ac110002/complete \
+        -H 'Content-Type: application/json' \
+        -d '{"variables": {"approved": {"value": false, "type": "Boolean"},"rejection_reason": {"value": "Test rejection", "type": "String"}}}'
+
+    or 
+
+    curl -X POST \
+        -u demo:demo \
+        http://localhost:8080/engine-rest/task/8ee5a47c-a1f1-11f0-8dd0-0242ac110002/complete \
+        -H 'Content-Type: application/json' \
+        -d '{"variables": {"approved": {"value": true, "type": "Boolean"},"rejection_reason": {"value": "approved by user", "type": "String"}}}'
+9.  if you run teh 2nd curl above (meaning to approve), the main workflow will complete successfully
+10. if you run the first curl above (meaning to reject), the rsa user task will re-apear
+11. you can run the following cmds to see the rejection_reason in rsa user task so you know why it's rejected by approver
+    (get user task general info, no variables)
+    curl -X GET \
+        "http://localhost:8080/engine-rest/task/5f3a50a5-a1f2-11f0-8dd0-0242ac110002" \
+        -H 'Content-Type: application/json'
+    
+    (not getting any variables)
+    curl -X GET \
+        "http://localhost:8080/engine-rest/task/5f3a50a5-a1f2-11f0-8dd0-0242ac110002/localVariables" \
+        -H 'Content-Type: application/json'
+
+    (if user task has a form, because in the rsa_generated.bpmn has 
+        <userTask id="Task_2" name="Human Task - perform rsa" camunda:formKey="x/y/z/rsa.html" />
+        you will need to run the curl below to see the form data)
+    curl -X GET \
+        "http://localhost:8080/engine-rest/task/5f3a50a5-a1f2-11f0-8dd0-0242ac110002/form-variables" \
+        -H 'Content-Type: application/json'
+
+    
 
 
 =============================================
