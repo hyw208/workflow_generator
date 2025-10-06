@@ -36,17 +36,28 @@ The `workflows.xlsx` file can contain multiple sheets, with each sheet represent
 
 | Column      | Description                                                                                                                            | Example                                                              |
 | :---------- | :------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------- |
-| `TopElm`    | The top-level element in the BPMN file. Use `PROCESS` for workflow steps.                                                              | `PROCESS`                                                            |
+| `TopElm`    | The top-level element in the BPMN file. Use `PROCESS` for workflow steps.                                                              | `PROCESS`, `ERROR`                                                            |
 | `Seq`       | A unique sequence number for each step in the workflow. This is used to link the steps together.                                       | `1`                                                                  |
 | `BPMNElm`   | The type of BPMN element for this step.                                                                                                | `StartEvent`, `UserTask`, `ServiceTask`, `ExclusiveGateway`, `EndEvent` |
-| `Id`        | A unique ID for the BPMN element.                                                                                                      | `StartEvent_1`, `Task_ApproveRequest`                                |
+| `Id`        | A unique ID for the BPMN element.                                                                                                      | `StartEvent`, `TaskApproveRequest`                                |
 | `Name`      | A user-friendly name for the BPMN element.                                                                                             | `Request Approval`                                                   |
 | `Next`      | The `Seq` number of the next step in the workflow. For gateways, you can define conditional flows.                                     | `2` or `${approved == true}: 3, ${approved == false}: 4`             |
 | `Config`    | Configuration for the BPMN element, such as the URL and method for a service task.                                                     | `url=http://localhost:8081, method=POST`                             |
 | `Meta`      | Custom metadata to be added to the BPMN element. This is useful for storing extra information, like UI hints.                          | `button1=Approve, button2=Reject`                                    |
-| `ErrorRef`  | For End Events, you can specify an error to throw.                                                                                     | `Error_1`                                                            |
 
+### Explain RSA Workflow
 ![Screenshot](camunda-via-excel.png)
+
+   * Process Flow: 
+       1. It starts with a startEvent.
+       2. Goes to a serviceTask (Task1).
+       3. Then to a userTask (Task2).
+       4. Then to a callActivity (CallApprovalWorkflow) which calls the approval_process.
+       5. If successful, it proceeds to the endEvent.
+   * Error Handling: 
+       * A boundaryEvent (CatchApprovalRejection) is attached to the callActivity.
+       * It's configured to catch an errorRef of RejectionError.
+       * If this error is caught, the flow is redirected back to the userTask (Task2), creating a loop for rework, which is a very common pattern.
 
 ### Generating the BPMN File
 
