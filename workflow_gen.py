@@ -122,7 +122,7 @@ class UserTask:
     """
     def __init__(self, process, id, name, config=None, meta=None, seq=None, next=None):
         config = parse_config_meta_next(config)
-        self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}userTask", id=id, name=name, **(config if config else {{}}))
+        self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}userTask", id=id, name=name, **(config if config else {}))
         
         meta = parse_config_meta_next(meta)
         if meta:
