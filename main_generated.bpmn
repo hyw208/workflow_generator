@@ -18,8 +18,8 @@
       <extensionElements>
         <camunda:meta key="x">1</camunda:meta>
         <camunda:meta key="y">2</camunda:meta>
-      </extensionElements>
-    </userTask>
+        </extensionElements>
+      </userTask>
     <callActivity id="call_rsa_workflow" name="Call rsa workflow" calledElement="rsa_process">
       <extensionElements>
         <camunda:in source="xxx" target="xxx" />
