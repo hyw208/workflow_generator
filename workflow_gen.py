@@ -186,6 +186,11 @@ class ExclusiveGateway:
         process._add_element(self.element, id)
 
 class SequenceFlow:
+    """
+        <sequenceFlow id="Flow_1" sourceRef="Task_1" targetRef="ExclusiveGateway_1">
+            <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+        </sequenceFlow>
+    """
     def __init__(self, process, id, source_ref, target_ref, condition_expression=None):
         """
             Creates a Sequence Flow element connecting two other elements.
@@ -235,6 +240,7 @@ class CallActivity:
                     key = key.split('out.')[-1]
                     ET.SubElement(ext, f"{{{CAMUNDA_NS}}}out", source=key, target=value)
                 else:
+                    print(f"Warning: Meta key must start with 'in.' or 'out.': {key}")
                     raise ValueError(f"Meta key must start with 'in.' or 'out.': {key}")
                 
         self.seq = seq
@@ -311,6 +317,7 @@ def get_int_or_none(value):
     try:
         return int(value)
     except (ValueError, TypeError):
+        print(f"Warning: Could not convert value '{value}' to int.")
         return None
     
 def get_str_or_none(value):
@@ -362,6 +369,7 @@ def handle(wf, tElm, df):
                 flows[seq] = BoundaryEvent(proc, id=id, name=name, errorRef=errorRef, config=config, meta=meta, seq=seq, next=next)
             else:
                 print(f"Warning: Unknown BPMN Element '{bpmnElm}' for Id '{id}'. Skipping element creation.")
+                raise ValueError(f"Unknown BPMN Element '{bpmnElm}' for Id '{id}'.")
         
         # handle flows after all elements are created
         print(flows)
@@ -382,10 +390,15 @@ def handle(wf, tElm, df):
                             SequenceFlow(proc, id=flow_id, source_ref=id, target_ref=target_id, condition_expression=k)
                         else:
                             print(f"Warning: Target sequence '{v}' not found for condition '{k}' in element id: {id}")
+                            raise ValueError(f"Target sequence '{v}' not found for condition '{k}' in element id: {id}")
                 else:
+                    print(f"Warning: Invalid 'next' value: {next} for element id: {id}")
                     raise ValueError(f"Invalid 'next' value: {next} for element id: {id}")
             else: 
                 print(f"No 'next' defined for element id: {id}")
+    else:
+        print(f"Warning: Unknown TopElm '{tElm}'. Skipping.")
+        raise ValueError(f"Unknown TopElm '{tElm}'.")
 
 if __name__ == "__main__":
     file_to_parse = 'workflows.xlsx'
