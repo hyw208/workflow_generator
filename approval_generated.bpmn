@@ -1,9 +1,9 @@
 <?xml version="1.0" ?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://bpmn.io/schema/bpmn" id="approval_definitions">
-  <error id="REJECTION_ERROR" name="Approval Rejected" errorCode="REJECTION_ERROR"/>
+  <error id="RejectionError" name="Rejection Error" errorCode="RejectionError"/>
   <process id="approval_process" isExecutable="true" camunda:historyTimeToLive="180">
-    <startEvent id="StartEvent_1"/>
-    <serviceTask id="Task_1" name="test post api call">
+    <startEvent id="StartEvent"/>
+    <serviceTask id="Task1" name="Call API As Test">
       <extensionElements>
         <camunda:connector>
           <camunda:connectorId>http-connector</camunda:connectorId>
@@ -15,24 +15,24 @@
         </camunda:connector>
       </extensionElements>
     </serviceTask>
-    <userTask id="Task_2" name="Human Task - approval or reject" camunda:formKey="x/y/z/approval.html">
+    <userTask id="Task2" name="Human Approval" camunda:formKey="x/y/z/approval.html">
       <extensionElements>
         <camunda:meta key="RSA">1</camunda:meta>
         <camunda:meta key="ACK">2</camunda:meta>
       </extensionElements>
     </userTask>
-    <exclusiveGateway id="decision" name="decision"/>
-    <endEvent id="end-approve"/>
-    <endEvent id="end-reject">
-      <errorEventDefinition errorRef="REJECTION_ERROR"/>
+    <exclusiveGateway id="Decision1" name="Check For Approval Or Rejection"/>
+    <endEvent id="EndApproved"/>
+    <endEvent id="EndRejected">
+      <errorEventDefinition errorRef="RejectionError"/>
     </endEvent>
-    <sequenceFlow id="Flow_StartEvent_1_to_Task_1" sourceRef="StartEvent_1" targetRef="Task_1"/>
-    <sequenceFlow id="Flow_Task_1_to_Task_2" sourceRef="Task_1" targetRef="Task_2"/>
-    <sequenceFlow id="Flow_Task_2_to_decision" sourceRef="Task_2" targetRef="decision"/>
-    <sequenceFlow id="Flow_decision_to_end-approve" sourceRef="decision" targetRef="end-approve">
+    <sequenceFlow id="Flow_StartEvent_to_Task1" sourceRef="StartEvent" targetRef="Task1"/>
+    <sequenceFlow id="Flow_Task1_to_Task2" sourceRef="Task1" targetRef="Task2"/>
+    <sequenceFlow id="Flow_Task2_to_Decision1" sourceRef="Task2" targetRef="Decision1"/>
+    <sequenceFlow id="Flow_Decision1_to_EndApproved" sourceRef="Decision1" targetRef="EndApproved">
       <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
     </sequenceFlow>
-    <sequenceFlow id="Flow_decision_to_end-reject" sourceRef="decision" targetRef="end-reject">
+    <sequenceFlow id="Flow_Decision1_to_EndRejected" sourceRef="Decision1" targetRef="EndRejected">
       <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
     </sequenceFlow>
   </process>

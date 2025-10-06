@@ -1,9 +1,9 @@
 <?xml version="1.0" ?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://bpmn.io/schema/bpmn" id="rsa_definitions">
-  <error id="REJECTION_ERROR" name="Approval Rejected" errorCode="REJECTION_ERROR"/>
+  <error id="RejectionError" name="Rejection Error" errorCode="RejectionError"/>
   <process id="rsa_process" isExecutable="true" camunda:historyTimeToLive="180">
-    <startEvent id="StartEvent_1"/>
-    <serviceTask id="Task_1" name="test post api call">
+    <startEvent id="StartEvent"/>
+    <serviceTask id="Task1" name="Call API As Test">
       <extensionElements>
         <camunda:connector>
           <camunda:connectorId>http-connector</camunda:connectorId>
@@ -15,22 +15,22 @@
         </camunda:connector>
       </extensionElements>
     </serviceTask>
-    <userTask id="Task_2" name="Human Task - perform rsa" camunda:formKey="x/y/z/rsa.html"/>
-    <callActivity id="call_approval_workflow" name="Call approval workflow" calledElement="approval_process">
+    <userTask id="Task2" name="Human RSA" camunda:formKey="x/y/z/rsa.html"/>
+    <callActivity id="CallApprovalWorkflow" name="Call Approval Workflow" calledElement="approval_process">
       <extensionElements>
         <camunda:in source="rsa" target="rsa"/>
         <camunda:out source="approval" target="approval"/>
         <camunda:out source="rejection_reason" target="rejection_reason"/>
       </extensionElements>
     </callActivity>
-    <boundaryEvent id="catch_rejection" name="Error Boundary" attachedToRef="call_approval_workflow">
-      <errorEventDefinition errorRef="REJECTION_ERROR"/>
+    <boundaryEvent id="CatchApprovalRejection" name="Catch Approval Rejection" attachedToRef="CallApprovalWorkflow">
+      <errorEventDefinition errorRef="RejectionError"/>
     </boundaryEvent>
-    <endEvent id="EndEvent_1"/>
-    <sequenceFlow id="Flow_StartEvent_1_to_Task_1" sourceRef="StartEvent_1" targetRef="Task_1"/>
-    <sequenceFlow id="Flow_Task_1_to_Task_2" sourceRef="Task_1" targetRef="Task_2"/>
-    <sequenceFlow id="Flow_Task_2_to_call_approval_workflow" sourceRef="Task_2" targetRef="call_approval_workflow"/>
-    <sequenceFlow id="Flow_call_approval_workflow_to_EndEvent_1" sourceRef="call_approval_workflow" targetRef="EndEvent_1"/>
-    <sequenceFlow id="Flow_catch_rejection_to_Task_2" sourceRef="catch_rejection" targetRef="Task_2"/>
+    <endEvent id="EndEvent"/>
+    <sequenceFlow id="Flow_StartEvent_to_Task1" sourceRef="StartEvent" targetRef="Task1"/>
+    <sequenceFlow id="Flow_Task1_to_Task2" sourceRef="Task1" targetRef="Task2"/>
+    <sequenceFlow id="Flow_Task2_to_CallApprovalWorkflow" sourceRef="Task2" targetRef="CallApprovalWorkflow"/>
+    <sequenceFlow id="Flow_CallApprovalWorkflow_to_EndEvent" sourceRef="CallApprovalWorkflow" targetRef="EndEvent"/>
+    <sequenceFlow id="Flow_CatchApprovalRejection_to_Task2" sourceRef="CatchApprovalRejection" targetRef="Task2"/>
   </process>
 </definitions>

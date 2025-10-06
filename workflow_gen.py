@@ -103,10 +103,11 @@ class EndEvent:
             <errorEventDefinition errorRef="REJECTION_ERROR" />
         </endEvent>
     """
-    def __init__(self, process, id="EndEvent_1", errorRef=None, seq=None, next=None):
+    def __init__(self, process, id="EndEvent_1", meta=None, seq=None, next=None):
         self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}endEvent", id=id)
-        if errorRef:    
-            ET.SubElement(self.element, f"{{{BPMN_NS}}}errorEventDefinition", errorRef=errorRef)
+        meta = parse_config_meta_next(meta)
+        if meta and meta.get("errorRef", None):    
+            ET.SubElement(self.element, f"{{{BPMN_NS}}}errorEventDefinition", errorRef=meta.get("errorRef", None))
         self.seq = seq
         self.next = parse_config_meta_next(next)
         process._add_element(self.element, id)
@@ -150,16 +151,16 @@ class ConnectorServiceTask:
             </extensionElements>
         </serviceTask>
     """
-    def __init__(self, process, id, name, config, seq=None, next=None):
+    def __init__(self, process, id, name, meta, seq=None, next=None):
         url = None
         method = None
         payload = None
-        config = parse_config_meta_next(config)
+        meta = parse_config_meta_next(meta)
 
-        if config: 
-            url = config.get('url', None)
-            method = config.get('method', 'GET')
-            payload = config.get('payload', None)
+        if meta: 
+            url = meta.get('url', None)
+            method = meta.get('method', 'GET')
+            payload = meta.get('payload', None)
 
         self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}serviceTask", id=id, name=name)
         ext = ET.SubElement(self.element, f"{{{BPMN_NS}}}extensionElements")
@@ -252,12 +253,13 @@ class BoundaryEvent:
         <boundaryEvent id="catch_rejection" attachedToRef="call_approval_subprocess">
             <errorEventDefinition errorRef="REJECTION_ERROR" />
         </boundaryEvent>
-    """
-    def __init__(self, process, id, name, errorRef=None, config=None, meta=None, seq=None, next=None):
+    """ 
+    def __init__(self, process, id, name, config=None, meta=None, seq=None, next=None):
         config = parse_config_meta_next(config)
         self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}boundaryEvent", id=id, name=name, **(config if config else {}))
-        if errorRef:    
-            ET.SubElement(self.element, f"{{{BPMN_NS}}}errorEventDefinition", errorRef=errorRef)
+        meta = parse_config_meta_next(meta)
+        if meta and meta.get("errorRef", None):    
+            ET.SubElement(self.element, f"{{{BPMN_NS}}}errorEventDefinition", errorRef=meta.get("errorRef", None))
                 
         self.seq = seq
         self.next = parse_config_meta_next(next)
@@ -350,23 +352,22 @@ def handle(wf, tElm, df):
             name = get_str_or_none(d.get("Name"))
             next = get_str_or_none(d.get("Next", None))
             config = get_str_or_none(d.get("Config", None)) 
-            meta = get_str_or_none(d.get("Meta", None)) 
-            errorRef = get_str_or_none(d.get("ErrorRef", None))
+            meta = get_str_or_none(d.get("Meta", None))
 
             if bpmnElm.upper() == "STARTEVENT":
                 flows[seq] = StartEvent(proc, id=id, seq=seq, next=next)
             elif bpmnElm.upper() == "ENDEVENT":
-                flows[seq] = EndEvent(proc, id=id, errorRef=errorRef, seq=seq, next=next)
+                flows[seq] = EndEvent(proc, id=id, meta=meta, seq=seq, next=next)
             elif bpmnElm.upper() == "USERTASK":
                 flows[seq] = UserTask(proc, id=id, name=name, config=config, meta=meta, seq=seq, next=next)
             elif bpmnElm.upper() == "SERVICETASK":
-                flows[seq] = ConnectorServiceTask(proc, id=id, name=name, config=config, seq=seq, next=next)
+                flows[seq] = ConnectorServiceTask(proc, id=id, name=name, meta=meta, seq=seq, next=next)
             elif bpmnElm.upper() == "EXCLUSIVEGATEWAY": 
                 flows[seq] = ExclusiveGateway(proc, id=id, name=name, seq=seq, next=next)
             elif bpmnElm.upper() == "CALLACTIVITY":
                 flows[seq] = CallActivity(proc, id=id, name=name, config=config, meta=meta, seq=seq, next=next)
             elif bpmnElm.upper() == "BOUNDARYEVENT":
-                flows[seq] = BoundaryEvent(proc, id=id, name=name, errorRef=errorRef, config=config, meta=meta, seq=seq, next=next)
+                flows[seq] = BoundaryEvent(proc, id=id, name=name, config=config, meta=meta, seq=seq, next=next)
             else:
                 print(f"Warning: Unknown BPMN Element '{bpmnElm}' for Id '{id}'. Skipping element creation.")
                 raise ValueError(f"Unknown BPMN Element '{bpmnElm}' for Id '{id}'.")
