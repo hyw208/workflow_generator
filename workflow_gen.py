@@ -1,9 +1,9 @@
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
 import json
+import yaml
+from xml.dom import minidom
+import xml.etree.ElementTree as ET
 import pandas as pd
 
-# --- XML Namespace Configuration ---
 BPMN_NS = "http://www.omg.org/spec/BPMN/20100524/MODEL"
 CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn"
 BPMNDI_NS = "http://www.omg.org/spec/BPMN/20100524/DI"
@@ -19,82 +19,58 @@ ET.register_namespace('omgdi', OMGDI_NS)
 ET.register_namespace('xsi', XSI_NS) 
 
 class Workflow:
+    """
+        <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                     xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                     xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+                     xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+                     xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                     targetNamespace="http://bpmn.io/schema/bpmn"
+                     id="Definitions_1">
+            ...
+    """
     def __init__(self, id="Definitions_1", name=None, target_namespace="http://bpmn.io/schema/bpmn"):
         self.name = name
         self.root = ET.Element(f"{{{BPMN_NS}}}definitions", {
-            "targetNamespace": target_namespace,
-            "id": id,
             f"xmlns:xsi": XSI_NS,
             f"xmlns:bpmndi": BPMNDI_NS,
             f"xmlns:omgdc": OMGDC_NS,
-            f"xmlns:omgdi": OMGDI_NS
+            f"xmlns:omgdi": OMGDI_NS,
+            "targetNamespace": target_namespace,
+            "id": id
         })
-        self.process = None
-        self.error = None
 
     def add_error(self, error):
-        self.error = error
         self.root.append(error.element)
 
     def add_process(self, process):
-        self.process = process
         self.root.append(process.element)
-
+    
     def to_pretty_xml(self):
-        self._indent(self.root)
-        rough_string = ET.tostring(self.root, 'utf-8', xml_declaration=True)
+        rough_string = ET.tostring(self.root, 'utf-8')
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
     
     def to_xml(self, filename):
-        # self._generate_diagram()
-        tree = ET.ElementTree(self.root)
-        self._indent(self.root)
-        tree.write(filename, encoding="utf-8", xml_declaration=True)
-
-    def _indent(self, elem, level=0):
-        i = "\n" + level * "  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            for child in elem:
-                self._indent(child, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
-
-"""     def _generate_diagram(self):
-        diagram = ET.SubElement(self.root, f"{{{BPMNDI_NS}}}BPMNDiagram", id="BPMNDiagram_1")
-        plane = ET.SubElement(diagram, f"{{{BPMNDI_NS}}}BPMNPlane", id="BPMNPlane_1", bpmnElement=self.process.id)
-
-        # Generate shapes
-        for elem_id, info in self.process.positions.items():
-            shape = ET.SubElement(plane, f"{{{BPMNDI_NS}}}BPMNShape", id=f"{elem_id}_di", bpmnElement=elem_id)
-            bounds = ET.SubElement(shape, f"{{{OMGDC_NS}}}Bounds", **info['coords'])
-
-        # Generate edges
-        for flow in self.process.element.findall(f'{{{BPMN_NS}}}sequenceFlow'):
-            flow_id = flow.get('id')
-            source_ref = flow.get('sourceRef')
-            target_ref = flow.get('targetRef')
-
-            source_info = self.process.positions.get(source_ref)
-            target_info = self.process.positions.get(target_ref)
-
-            if source_info and target_info:
-                edge = ET.SubElement(plane, f"{{{BPMNDI_NS}}}BPMNEdge", id=f"{flow_id}_di", bpmnElement=flow_id)
-                ET.SubElement(edge, f"{{{OMGDI_NS}}}waypoint", x=str(int(source_info['coords']['x']) + int(source_info['coords']['width'])), y=str(int(source_info['coords']['y']) + int(source_info['coords']['height']) // 2))
-                ET.SubElement(edge, f"{{{OMGDI_NS}}}waypoint", x=target_info['coords']['x'], y=str(int(target_info['coords']['y']) + int(target_info['coords']['height']) // 2))
- """
+        to_pretty_xml = self.to_pretty_xml()
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(to_pretty_xml)
 
 class Error:
+    """
+        <error id="REJECTION_ERROR" name="Rejection Error" errorCode="REJECTION_ERROR" />
+    """
     def __init__(self, id, name, error_code):
         attribs = {"id": id, "name": name, "errorCode": error_code}
         self.element = ET.Element(f"{{{BPMN_NS}}}error", attrib=attribs)
 
 class Process:
+    """
+        <process id="Process_1" isExecutable="true" camunda:historyTimeToLive="180">
+            ...
+        </process>
+    """
     def __init__(self, id="Process_1", is_executable=True, history_ttl="180"):
         self.id = id
         self.element = ET.Element(
@@ -104,37 +80,46 @@ class Process:
             **{f"{{{CAMUNDA_NS}}}historyTimeToLive": history_ttl}
         )
         self.elements = {}
-        self.positions = {}
-        self._x_pos = 150
-        self._y_pos = 100
 
-    def _add_element(self, element, elem_id, width, height):
+    def _add_element(self, element, elem_id):
         self.elements[elem_id] = element
-        self.positions[elem_id] = {
-            'coords': {'x': str(self._x_pos), 'y': str(self._y_pos), 'width': str(width), 'height': str(height)}
-        }
-        self._x_pos += width + 100
 
     def add_sequence_flow(self, id, source_ref, target_ref):
         return ET.SubElement(self.element, f"{{{BPMN_NS}}}sequenceFlow", id=id, sourceRef=source_ref, targetRef=target_ref)
 
 class StartEvent:
+    """
+        <startEvent id="StartEvent_1" />
+    """
     def __init__(self, process, id="StartEvent_1", seq=None, next=None):
         self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}startEvent", id=id)
         self.seq = seq
-        self.next = parse_config_meta_next(next, d2=':')
-        process._add_element(self.element, id, 36, 36)
+        self.next = parse_config_meta_next(next)
+        process._add_element(self.element, id)
 
 class EndEvent:
+    """
+        <endEvent id="EndEvent_1">
+            <errorEventDefinition errorRef="REJECTION_ERROR" />
+        </endEvent>
+    """
     def __init__(self, process, id="EndEvent_1", errorRef=None, seq=None, next=None):
         self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}endEvent", id=id)
         if errorRef:    
             ET.SubElement(self.element, f"{{{BPMN_NS}}}errorEventDefinition", errorRef=errorRef)
         self.seq = seq
-        self.next = parse_config_meta_next(next, d2=':')
-        process._add_element(self.element, id, 36, 36)
+        self.next = parse_config_meta_next(next)
+        process._add_element(self.element, id)
 
 class UserTask:
+    """
+        <userTask id="UserTask_1" name="Approval Task" camunda:assignee="john.doe">
+            <extensionElements>
+                <camunda:meta key="priority">high</camunda:meta>
+                <camunda:meta key="dueDate">2024-12-31T23:59:59</camunda:meta>
+            </extensionElements>
+        </userTask>
+    """
     def __init__(self, process, id, name, config=None, meta=None, seq=None, next=None):
         config = parse_config_meta_next(config)
         self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}userTask", id=id, name=name, **(config if config else {{}}))
@@ -147,10 +132,24 @@ class UserTask:
                 meta_elem.text = str(value)
 
         self.seq = seq
-        self.next = parse_config_meta_next(next, d2=':')
-        process._add_element(self.element, id, 100, 80)
+        self.next = parse_config_meta_next(next)
+        process._add_element(self.element, id)
 
 class ConnectorServiceTask:
+    """
+        <serviceTask id="ServiceTask_1" name="HTTP Connector Task">
+            <extensionElements>
+                <camunda:connector>
+                    <camunda:connectorId>http-connector</camunda:connectorId>
+                    <camunda:inputOutput>
+                        <camunda:inputParameter name="url">http://host.docker.internal:8081</camunda:inputParameter>
+                        <camunda:inputParameter name="method">POST</camunda:inputParameter>
+                        <camunda:inputParameter name="payload">{"name": "approval"}</camunda:inputParameter>
+                    </camunda:inputOutput>
+                </camunda:connector>
+            </extensionElements>
+        </serviceTask>
+    """
     def __init__(self, process, id, name, config, seq=None, next=None):
         url = None
         method = None
@@ -161,8 +160,6 @@ class ConnectorServiceTask:
             url = config.get('url', None)
             method = config.get('method', 'GET')
             payload = config.get('payload', None)
-            if payload:
-                payload = json.loads(payload)
 
         self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}serviceTask", id=id, name=name)
         ext = ET.SubElement(self.element, f"{{{BPMN_NS}}}extensionElements")
@@ -175,15 +172,18 @@ class ConnectorServiceTask:
             ET.SubElement(io, f"{{{CAMUNDA_NS}}}inputParameter", name="payload").text = json.dumps(payload)
         
         self.seq = seq
-        self.next = parse_config_meta_next(next, d2=':')
-        process._add_element(self.element, id, 100, 80)
+        self.next = parse_config_meta_next(next)
+        process._add_element(self.element, id)
 
 class ExclusiveGateway:
+    """
+        <exclusiveGateway id="ExclusiveGateway_1" name="Decision Point" />
+    """ 
     def __init__(self, process, id, name=None, seq=None, next=None):
         self.element = ET.SubElement(process.element, f"{{{BPMN_NS}}}exclusiveGateway", id=id, name=name)
         self.seq = seq
-        self.next = parse_config_meta_next(next, d2=':')
-        process._add_element(self.element, id, 50, 50)
+        self.next = parse_config_meta_next(next)
+        process._add_element(self.element, id)
 
 class SequenceFlow:
     def __init__(self, process, id, source_ref, target_ref, condition_expression=None):
@@ -238,8 +238,8 @@ class CallActivity:
                     raise ValueError(f"Meta key must start with 'in.' or 'out.': {key}")
                 
         self.seq = seq
-        self.next = parse_config_meta_next(next, d2=':')
-        process._add_element(self.element, id, 100, 80)
+        self.next = parse_config_meta_next(next)
+        process._add_element(self.element, id)
 
 class BoundaryEvent:
     """
@@ -254,16 +254,14 @@ class BoundaryEvent:
             ET.SubElement(self.element, f"{{{BPMN_NS}}}errorEventDefinition", errorRef=errorRef)
                 
         self.seq = seq
-        self.next = parse_config_meta_next(next, d2=':')
-        process._add_element(self.element, id, 100, 80)
+        self.next = parse_config_meta_next(next)
+        process._add_element(self.element, id)
 
 def parse_workflows_excel(file_path):
     """
     Parses a multi-sheet Excel file and returns a dictionary of DataFrames.
-
     Args:
         file_path (str): The path to the Excel file.
-
     Returns:
         dict: A dictionary where keys are sheet names and values are pandas DataFrames.
               Returns an empty dictionary if the file cannot be read.
@@ -273,7 +271,6 @@ def parse_workflows_excel(file_path):
         sheet_names = xls.sheet_names
         
         dataframes = {sheet: pd.read_excel(xls, sheet_name=sheet) for sheet in sheet_names}
-        
         return dataframes
 
     except FileNotFoundError:
@@ -283,38 +280,32 @@ def parse_workflows_excel(file_path):
         print(f"An error occurred: {e}")
         return {}
 
-def parse_config_meta_next(text, d2='='):
+def parse_config_meta_next(text):
     """
-        line delimiter is comma
-        whereas key-value delimiter is defaulted to '=' 
-        e.g. config and meta using '='
-            url=http://host.docker.internal:8081, 
-            method=POST, 
-            payload={"name": "approval"}
-        eg. next using ':'
-            ${approved == true}: 5,
-            ${approved == false}: 6
-
-            or 
-
-            2
-
-        ***********
-        BUG: there is a bug if payload contains a comma, eg. payload={"name": "approval", "x": "y"}, need a better separator in excel
-        ***********
+    Parses a string from an Excel cell.
+    The string can be:
+        1. A simple integer (for the 'Next' column).
+        2. A multi-line YAML formatted string (for 'Config' and 'Meta' columns).
+        3. Empty or NaN, which returns None.
+    Args:
+        text (str): The text from the Excel cell.
+    Returns:
+        A Python object (int, dict, list, etc.), or None if the text is empty or invalid.
+    Raises:
+        ValueError: If the text cannot be parsed as an integer or YAML.
     """
-    obj = None
-    if text:
-        try:
-            obj = int(text)
-        except ValueError:
-            print("Not an integer string")
-            obj = {}
-            for part in text.split(','):
-                if part: 
-                    key, value = part.split(d2)
-                    obj[key.strip()] = value.strip()
-    return obj # None, int, or dict
+    # Return None if the cell is empty
+    if not text or pd.isna(text):
+        return None
+    if isinstance(text, int):
+        return text
+    if isinstance(text, float) and text.is_integer():
+        return int(text)
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        print(f"Warning: Could not parse content as YAML. Content: '{text}'\\nError: {e}")
+        return None
 
 def get_int_or_none(value):
     try:
@@ -408,13 +399,13 @@ if __name__ == "__main__":
 
             # Generate workflow for each sheet
             print(f"\nGenerating workflow for sheet: {name}")
-
             wf = Workflow(id=f"{name}_definitions", name=name)
         
-            topElms = df['TopElm'].unique()
-            for tElm in topElms: # iterate each unique top elm
+            # Iterate each unique top elm
+            for tElm in df['TopElm'].unique(): 
                 print(f"\nProcessing TopElm: {tElm}")
-                sub_df = df[df['TopElm'] == tElm]
-                handle(wf, tElm, sub_df)
+                handle(wf, tElm, df[df['TopElm'] == tElm])
 
+            # Output the generated BPMN XML
+            print(wf.to_pretty_xml())
             wf.to_xml(f"{name}_generated.bpmn") 

@@ -1,8 +1,8 @@
-<?xml version='1.0' encoding='utf-8'?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" targetNamespace="http://bpmn.io/schema/bpmn" id="approval_definitions" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI">
-  <error id="REJECTION_ERROR" name="Approval Rejected" errorCode="REJECTION_ERROR" />
+<?xml version="1.0" ?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://bpmn.io/schema/bpmn" id="approval_definitions">
+  <error id="REJECTION_ERROR" name="Approval Rejected" errorCode="REJECTION_ERROR"/>
   <process id="approval_process" isExecutable="true" camunda:historyTimeToLive="180">
-    <startEvent id="StartEvent_1" />
+    <startEvent id="StartEvent_1"/>
     <serviceTask id="Task_1" name="test post api call">
       <extensionElements>
         <camunda:connector>
@@ -10,30 +10,30 @@
           <camunda:inputOutput>
             <camunda:inputParameter name="url">http://host.docker.internal:8081</camunda:inputParameter>
             <camunda:inputParameter name="method">POST</camunda:inputParameter>
-            <camunda:inputParameter name="payload">{"name": "approval"}</camunda:inputParameter>
-            </camunda:inputOutput>
-          </camunda:connector>
-        </extensionElements>
-      </serviceTask>
+            <camunda:inputParameter name="payload">{"name": "approval", "x": 2}</camunda:inputParameter>
+          </camunda:inputOutput>
+        </camunda:connector>
+      </extensionElements>
+    </serviceTask>
     <userTask id="Task_2" name="Human Task - approval or reject" camunda:formKey="x/y/z/approval.html">
       <extensionElements>
-        <camunda:meta key="x">1</camunda:meta>
-        <camunda:meta key="y">2</camunda:meta>
-        </extensionElements>
-      </userTask>
-    <exclusiveGateway id="decision" name="decision" />
-    <endEvent id="end-approve" />
+        <camunda:meta key="RSA">1</camunda:meta>
+        <camunda:meta key="ACK">2</camunda:meta>
+      </extensionElements>
+    </userTask>
+    <exclusiveGateway id="decision" name="decision"/>
+    <endEvent id="end-approve"/>
     <endEvent id="end-reject">
-      <errorEventDefinition errorRef="REJECTION_ERROR" />
-      </endEvent>
-    <sequenceFlow id="Flow_StartEvent_1_to_Task_1" sourceRef="StartEvent_1" targetRef="Task_1" />
-    <sequenceFlow id="Flow_Task_1_to_Task_2" sourceRef="Task_1" targetRef="Task_2" />
-    <sequenceFlow id="Flow_Task_2_to_decision" sourceRef="Task_2" targetRef="decision" />
+      <errorEventDefinition errorRef="REJECTION_ERROR"/>
+    </endEvent>
+    <sequenceFlow id="Flow_StartEvent_1_to_Task_1" sourceRef="StartEvent_1" targetRef="Task_1"/>
+    <sequenceFlow id="Flow_Task_1_to_Task_2" sourceRef="Task_1" targetRef="Task_2"/>
+    <sequenceFlow id="Flow_Task_2_to_decision" sourceRef="Task_2" targetRef="decision"/>
     <sequenceFlow id="Flow_decision_to_end-approve" sourceRef="decision" targetRef="end-approve">
       <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
-      </sequenceFlow>
+    </sequenceFlow>
     <sequenceFlow id="Flow_decision_to_end-reject" sourceRef="decision" targetRef="end-reject">
       <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
-      </sequenceFlow>
-    </process>
-  </definitions>
+    </sequenceFlow>
+  </process>
+</definitions>
