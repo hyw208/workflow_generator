@@ -28,7 +28,7 @@ This project provides a way to generate Camunda BPMN 2.0 workflows from a simple
 
 ## How it Works
 
-The core of this project is the `workflow_gen.py` script, which reads an Excel file (`workflows.xlsx`) and generates a BPMN 2.0 XML file.
+The core of this project is the `workflows_gen.py` script, which reads an Excel file (`workflows.xlsx`) and generates a BPMN 2.0 XML file.
 
 ### Excel File Structure
 
@@ -46,8 +46,8 @@ The `workflows.xlsx` file can contain multiple sheets, with each sheet represent
 | `Meta`      | Custom metadata to be added to the BPMN element. This is useful for storing extra information, like UI hints.                          | `button1=Approve, button2=Reject`                                    |
 
 ### Explain RSA Workflow
-![Screenshot](camunda-via-excel.png)
-![Screenshot](rsa-process.png)
+![Screenshot](pictures/camunda-via-excel.png)
+![Screenshot](pictures/rsa-process.png)
    * Process Flow: 
        1. It starts with a startEvent.
        2. Goes to a serviceTask (Task1).
@@ -61,10 +61,10 @@ The `workflows.xlsx` file can contain multiple sheets, with each sheet represent
 
 ### Generating the BPMN File
 
-To generate the BPMN file, run the `workflow_gen.py` script:
+To generate the BPMN file, run the `workflows_gen.py` script:
 
 ```bash
-python workflow_gen.py
+python workflows_gen.py
 ```
 
 This will read the `workflows.xlsx` file and generate a new BPMN file for each sheet (e.g., `approval_generated.bpmn`).

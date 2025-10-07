@@ -530,7 +530,8 @@ def handle(wf, tElm, df):
         raise ValueError(f"Unknown TopElm '{tElm}'.")
 
 if __name__ == "__main__":
-    file_to_parse = 'workflows.xlsx'
+    file_to_parse = "workflows.xlsx"
+    folder_to_save = "generated"
 
     parsed_data = parse_workflows_excel(file_to_parse)
     if parsed_data:
@@ -553,4 +554,4 @@ if __name__ == "__main__":
 
             # Output the generated BPMN XML
             print(wf.to_pretty_xml())
-            wf.to_xml(f"{name}_generated.bpmn") 
+            wf.to_xml(folder_to_save + f"/{name}_generated.bpmn") 
