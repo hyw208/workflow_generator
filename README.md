@@ -47,7 +47,7 @@ The `workflows.xlsx` file can contain multiple sheets, with each sheet represent
 
 ### Explain RSA Workflow
 ![Screenshot](camunda-via-excel.png)
-
+![Screenshot](rsa-process.png)
    * Process Flow: 
        1. It starts with a startEvent.
        2. Goes to a serviceTask (Task1).
