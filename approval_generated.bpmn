@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://bpmn.io/schema/bpmn" id="approval_definitions">
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" targetNamespace="http://bpmn.io/schema/bpmn" id="approval_definitions">
   <error id="RejectionError" name="Rejection Error" errorCode="RejectionError"/>
   <process id="approval_process" isExecutable="true" camunda:historyTimeToLive="180">
     <startEvent id="StartEvent"/>
@@ -36,4 +36,46 @@
       <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
     </sequenceFlow>
   </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_approval">
+    <bpmndi:BPMNPlane id="BPMNPlane_approval_process" bpmnElement="approval_process">
+      <bpmndi:BPMNShape id="StartEvent_di" bpmnElement="StartEvent">
+        <omgdc:Bounds x="150" y="80" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task1_di" bpmnElement="Task1">
+        <omgdc:Bounds x="300" y="80" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task2_di" bpmnElement="Task2">
+        <omgdc:Bounds x="450" y="80" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Decision1_di" bpmnElement="Decision1">
+        <omgdc:Bounds x="600" y="80" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndApproved_di" bpmnElement="EndApproved">
+        <omgdc:Bounds x="750" y="80" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndRejected_di" bpmnElement="EndRejected">
+        <omgdc:Bounds x="900" y="80" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_StartEvent_to_Task1_di" bpmnElement="Flow_StartEvent_to_Task1">
+        <omgdi:waypoint x="186" y="98"/>
+        <omgdi:waypoint x="300" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task1_to_Task2_di" bpmnElement="Flow_Task1_to_Task2">
+        <omgdi:waypoint x="400" y="120"/>
+        <omgdi:waypoint x="450" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Task2_to_Decision1_di" bpmnElement="Flow_Task2_to_Decision1">
+        <omgdi:waypoint x="550" y="120"/>
+        <omgdi:waypoint x="600" y="105"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Decision1_to_EndApproved_di" bpmnElement="Flow_Decision1_to_EndApproved">
+        <omgdi:waypoint x="650" y="105"/>
+        <omgdi:waypoint x="750" y="98"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Decision1_to_EndRejected_di" bpmnElement="Flow_Decision1_to_EndRejected">
+        <omgdi:waypoint x="650" y="105"/>
+        <omgdi:waypoint x="900" y="98"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
 </definitions>

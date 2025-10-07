@@ -33,19 +33,101 @@ class Workflow:
     def __init__(self, id="Definitions_1", name=None, target_namespace="http://bpmn.io/schema/bpmn"):
         self.name = name
         self.root = ET.Element(f"{{{BPMN_NS}}}definitions", {
-            f"xmlns:xsi": XSI_NS,
-            f"xmlns:bpmndi": BPMNDI_NS,
-            f"xmlns:omgdc": OMGDC_NS,
-            f"xmlns:omgdi": OMGDI_NS,
             "targetNamespace": target_namespace,
             "id": id
         })
+        self.errors = []
+        self.processes = []
 
     def add_error(self, error):
         self.root.append(error.element)
+        self.errors.append(error)
 
     def add_process(self, process):
         self.root.append(process.element)
+        self.processes.append(process)
+
+    def generate_diagram(self):
+        if not self.processes:
+            return
+
+        diagram = BPMNDiagram(id=f"BPMNDiagram_{self.name}")
+        self.root.append(diagram.element)
+
+        for process in self.processes:
+            plane = BPMNPlane(id=f"BPMNPlane_{process.id}", process_element=process.id)
+            diagram.add_plane(plane)
+
+            # Auto-position elements
+            x, y = 150, 80
+            max_y = y
+            for seq, element_id in sorted(process.element_positions.items()):
+                elem = process.elements.get(element_id)
+                if elem is not None:
+                    elem_type = elem.tag.split('}')[-1]
+                    
+                    current_x, current_y = x, y
+
+                    if elem_type == 'boundaryEvent':
+                        attached_to_ref = elem.get('attachedToRef')
+                        attached_shape = plane.shapes.get(f"{attached_to_ref}_di")
+                        if attached_shape:
+                            attached_bounds = attached_shape.bounds
+                            current_x = int(attached_bounds['x']) + int(attached_bounds['width']) // 2 - 18 # Center boundary event
+                            current_y = int(attached_bounds['y']) + int(attached_bounds['height']) - 18
+                    else:
+                        x += 150 # Increment x for next non-boundary element
+
+                    if elem_type in ['startEvent', 'endEvent', 'boundaryEvent']:
+                        width, height = 36, 36
+                    elif 'gateway' in elem_type.lower():
+                        width, height = 50, 50
+                    else: # Tasks
+                        width, height = 100, 80
+                    
+                    shape = BPMNShape(id=f"{element_id}_di", bpmn_element=element_id, x=str(current_x), y=str(current_y), width=str(width), height=str(height))
+                    plane.add_shape(shape)
+                    max_y = max(max_y, current_y + height)
+
+            # Add edges for sequence flows
+            feedback_y = max_y + 50
+            for sf in process.element.findall(f'{{{BPMN_NS}}}sequenceFlow'):
+                sf_id = sf.get('id')
+                source_id = sf.get('sourceRef')
+                target_id = sf.get('targetRef')
+                
+                source_element = process.elements.get(source_id)
+                source_shape = plane.shapes.get(f"{source_id}_di")
+                target_shape = plane.shapes.get(f"{target_id}_di")
+
+                if source_shape and target_shape:
+                    source_bounds = source_shape.bounds
+                    target_bounds = target_shape.bounds
+
+                    if source_element is not None and source_element.tag.split('}')[-1] == 'boundaryEvent':
+                        # Feedback loop
+                        start_x = int(source_bounds['x']) + int(source_bounds['width']) // 2
+                        start_y = int(source_bounds['y']) + int(source_bounds['height'])
+
+                        end_x = int(target_bounds['x']) + int(target_bounds['width']) // 2
+                        end_y = int(target_bounds['y']) + int(target_bounds['height'])
+
+                        waypoints = [
+                            (start_x, start_y),
+                            (start_x, feedback_y),
+                            (end_x, feedback_y),
+                            (end_x, end_y)
+                        ]
+                    else:
+                        start_x = int(source_bounds['x']) + int(source_bounds['width'])
+                        start_y = int(source_bounds['y']) + int(source_bounds['height']) // 2
+
+                        end_x = int(target_bounds['x'])
+                        end_y = int(target_bounds['y']) + int(target_bounds['height']) // 2
+                        waypoints = [(start_x, start_y), (end_x, end_y)]
+
+                    edge = BPMNEdge(id=f"{sf_id}_di", bpmn_element=sf_id, waypoints=waypoints)
+                    plane.add_edge(edge)
     
     def to_pretty_xml(self):
         rough_string = ET.tostring(self.root, 'utf-8')
@@ -62,6 +144,7 @@ class Error:
         <error id="REJECTION_ERROR" name="Rejection Error" errorCode="REJECTION_ERROR" />
     """
     def __init__(self, id, name, error_code):
+        self.id = id
         attribs = {"id": id, "name": name, "errorCode": error_code}
         self.element = ET.Element(f"{{{BPMN_NS}}}error", attrib=attribs)
 
@@ -80,6 +163,7 @@ class Process:
             **{f"{{{CAMUNDA_NS}}}historyTimeToLive": history_ttl}
         )
         self.elements = {}
+        self.element_positions = {}
 
     def _add_element(self, element, elem_id):
         self.elements[elem_id] = element
@@ -212,7 +296,7 @@ class SequenceFlow:
             condition = ET.SubElement(
                 self.element,
                 f"{{{BPMN_NS}}}conditionExpression",
-                attrib={"xsi:type": "tFormalExpression"}
+                attrib={f'{{{XSI_NS}}}type': 'tFormalExpression'}
             )
             condition.text = condition_expression
 
@@ -264,6 +348,39 @@ class BoundaryEvent:
         self.seq = seq
         self.next = parse_config_meta_next(next)
         process._add_element(self.element, id)
+
+class BPMNDiagram:
+    def __init__(self, id):
+        self.element = ET.Element(f"{{{BPMNDI_NS}}}BPMNDiagram", id=id)
+
+    def add_plane(self, plane):
+        self.element.append(plane.element)
+
+class BPMNPlane:
+    def __init__(self, id, process_element):
+        self.element = ET.Element(f"{{{BPMNDI_NS}}}BPMNPlane", id=id, bpmnElement=process_element)
+        self.shapes = {}
+
+    def add_shape(self, shape):
+        self.element.append(shape.element)
+        self.shapes[shape.id] = shape
+
+    def add_edge(self, edge):
+        self.element.append(edge.element)
+
+class BPMNShape:
+    def __init__(self, id, bpmn_element, x, y, width, height):
+        self.id = id
+        self.bpmn_element = bpmn_element
+        self.element = ET.Element(f"{{{BPMNDI_NS}}}BPMNShape", id=id, bpmnElement=bpmn_element)
+        self.bounds = {"x": x, "y": y, "width": width, "height": height}
+        ET.SubElement(self.element, f"{{{OMGDC_NS}}}Bounds", **self.bounds)
+
+class BPMNEdge:
+    def __init__(self, id, bpmn_element, waypoints):
+        self.element = ET.Element(f"{{{BPMNDI_NS}}}BPMNEdge", id=id, bpmnElement=bpmn_element)
+        for x, y in waypoints:
+            ET.SubElement(self.element, f"{{{OMGDI_NS}}}waypoint", x=str(x), y=str(y))
 
 def parse_workflows_excel(file_path):
     """
@@ -371,6 +488,7 @@ def handle(wf, tElm, df):
             else:
                 print(f"Warning: Unknown BPMN Element '{bpmnElm}' for Id '{id}'. Skipping element creation.")
                 raise ValueError(f"Unknown BPMN Element '{bpmnElm}' for Id '{id}'.")
+            proc.element_positions[seq] = id
         
         # handle flows after all elements are created
         print(flows)
@@ -419,6 +537,9 @@ if __name__ == "__main__":
             for tElm in df['TopElm'].unique(): 
                 print(f"\nProcessing TopElm: {tElm}")
                 handle(wf, tElm, df[df['TopElm'] == tElm])
+
+            # Generate the diagram
+            wf.generate_diagram()
 
             # Output the generated BPMN XML
             print(wf.to_pretty_xml())
