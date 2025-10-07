@@ -39,7 +39,7 @@
   <bpmndi:BPMNDiagram id="BPMNDiagram_approval">
     <bpmndi:BPMNPlane id="BPMNPlane_approval_process" bpmnElement="approval_process">
       <bpmndi:BPMNShape id="StartEvent_di" bpmnElement="StartEvent">
-        <omgdc:Bounds x="150" y="80" width="36" height="36"/>
+        <omgdc:Bounds x="150" y="102" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Task1_di" bpmnElement="Task1">
         <omgdc:Bounds x="300" y="80" width="100" height="80"/>
@@ -48,16 +48,16 @@
         <omgdc:Bounds x="450" y="80" width="100" height="80"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Decision1_di" bpmnElement="Decision1">
-        <omgdc:Bounds x="600" y="80" width="50" height="50"/>
+        <omgdc:Bounds x="600" y="95" width="50" height="50"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndApproved_di" bpmnElement="EndApproved">
-        <omgdc:Bounds x="750" y="80" width="36" height="36"/>
+        <omgdc:Bounds x="750" y="102" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndRejected_di" bpmnElement="EndRejected">
-        <omgdc:Bounds x="900" y="80" width="36" height="36"/>
+        <omgdc:Bounds x="900" y="180" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_StartEvent_to_Task1_di" bpmnElement="Flow_StartEvent_to_Task1">
-        <omgdi:waypoint x="186" y="98"/>
+        <omgdi:waypoint x="186" y="120"/>
         <omgdi:waypoint x="300" y="120"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task1_to_Task2_di" bpmnElement="Flow_Task1_to_Task2">
@@ -66,15 +66,15 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Task2_to_Decision1_di" bpmnElement="Flow_Task2_to_Decision1">
         <omgdi:waypoint x="550" y="120"/>
-        <omgdi:waypoint x="600" y="105"/>
+        <omgdi:waypoint x="600" y="120"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Decision1_to_EndApproved_di" bpmnElement="Flow_Decision1_to_EndApproved">
-        <omgdi:waypoint x="650" y="105"/>
-        <omgdi:waypoint x="750" y="98"/>
+        <omgdi:waypoint x="650" y="120"/>
+        <omgdi:waypoint x="750" y="120"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Decision1_to_EndRejected_di" bpmnElement="Flow_Decision1_to_EndRejected">
-        <omgdi:waypoint x="650" y="105"/>
-        <omgdi:waypoint x="900" y="98"/>
+        <omgdi:waypoint x="650" y="120"/>
+        <omgdi:waypoint x="900" y="198"/>
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

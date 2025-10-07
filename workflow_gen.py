@@ -61,11 +61,13 @@ class Workflow:
             # Auto-position elements
             x, y = 150, 80
             max_y = y
+            task_height = 80
             for seq, element_id in sorted(process.element_positions.items()):
                 elem = process.elements.get(element_id)
                 if elem is not None:
                     elem_type = elem.tag.split('}')[-1]
-                    
+                    has_error_event_definition = elem.find(f'{{{BPMN_NS}}}errorEventDefinition') is not None
+
                     current_x, current_y = x, y
 
                     if elem_type == 'boundaryEvent':
@@ -75,15 +77,23 @@ class Workflow:
                             attached_bounds = attached_shape.bounds
                             current_x = int(attached_bounds['x']) + int(attached_bounds['width']) // 2 - 18 # Center boundary event
                             current_y = int(attached_bounds['y']) + int(attached_bounds['height']) - 18
+                    elif has_error_event_definition:
+                        current_y = y + 100
+                        x += 150
                     else:
                         x += 150 # Increment x for next non-boundary element
 
-                    if elem_type in ['startEvent', 'endEvent', 'boundaryEvent']:
+                    if elem_type in ['startEvent', 'endEvent']:
+                        width, height = 36, 36
+                        if not has_error_event_definition:
+                            current_y = y + (task_height - height) // 2
+                    elif elem_type == 'boundaryEvent':
                         width, height = 36, 36
                     elif 'gateway' in elem_type.lower():
                         width, height = 50, 50
+                        current_y = y + (task_height - height) // 2
                     else: # Tasks
-                        width, height = 100, 80
+                        width, height = 100, task_height
                     
                     shape = BPMNShape(id=f"{element_id}_di", bpmn_element=element_id, x=str(current_x), y=str(current_y), width=str(width), height=str(height))
                     plane.add_shape(shape)
